@@ -50,6 +50,9 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [ci-ok, build]
+    permissions:
+      contents: read
+      packages: read      # a called workflow can't get more than its caller allows
     uses: ./.github/workflows/deploy.yml
     with:
       digest: ${{ needs.build.outputs.digest }}
