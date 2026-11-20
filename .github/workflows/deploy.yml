@@ -10,13 +10,22 @@ on:
       digest: { type: string, required: true, description: "sha256:... to deploy" }
 permissions:
   contents: read
+  packages: read
 concurrency: production
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production   # branch rule: main; DEPLOY_TOKEN lives here
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}@${{ inputs.digest }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: ./scripts/deploy.sh "ghcr.io/${{ github.repository }}@${{ inputs.digest }}"
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker buildx imagetools inspect "$IMAGE"   # fail fast if the digest is gone
+      - run: ./scripts/deploy.sh "$IMAGE"
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
