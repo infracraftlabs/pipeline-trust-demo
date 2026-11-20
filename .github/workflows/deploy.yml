@@ -1,0 +1,22 @@
+name: deploy
+on:
+  workflow_call:
+    inputs:
+      digest: { type: string, required: true }
+    secrets:
+      DEPLOY_TOKEN: { required: true }   # fail loudly if the caller forgets it
+  workflow_dispatch:          # rollback: paste the digest of the last good release
+    inputs:
+      digest: { type: string, required: true, description: "sha256:... to deploy" }
+permissions:
+  contents: read
+concurrency: production
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production   # branch rule: main; DEPLOY_TOKEN lives here
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: ./scripts/deploy.sh "ghcr.io/${{ github.repository }}@${{ inputs.digest }}"
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
